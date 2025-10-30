@@ -1,21 +1,95 @@
 import java.util.HashMap;
 import java.util.Scanner;
 
+class Account {
+    protected int atmNumber;
+    protected int pin;
+    protected double balance;
+
+    public Account(int atmNumber, int pin, double balance) {
+        this.atmNumber = atmNumber;
+        this.pin = pin;
+        this.balance = balance;
+    }
+
+    public boolean authenticate(int atmNumber, int pin) {
+        return this.atmNumber == atmNumber && this.pin == pin;
+    }
+
+    public double getBalance() {
+        return balance;
+    }
+
+    public void withdraw(double amount) {
+        if (amount <= 0) {
+            System.out.println("Invalid amount entered.");
+        } else if (amount <= balance) {
+            balance -= amount;
+            System.out.println("Please take your cash.");
+            System.out.println("Remaining balance: Rs." + balance);
+        } else {
+            System.out.println("Insufficient funds.");
+        }
+    }
+
+    public void deposit(double amount) {
+        if (amount <= 0) {
+            System.out.println("Invalid amount entered.");
+        } else {
+            balance += amount;
+            System.out.println("Deposited successfully. New balance: Rs." + balance);
+        }
+    }
+}
+
+class SavingsAccount extends Account {
+    public SavingsAccount(int atmNumber, int pin, double balance) {
+        super(atmNumber, pin, balance);
+    }
+
+    @Override
+    public void withdraw(double amount) {
+        
+        if (amount <= 0) {
+            System.out.println("Invalid amount entered.");
+        } else if (amount <= balance - 500) {
+            balance -= amount;
+            System.out.println("Please take your cash.");
+            System.out.println("Remaining balance: Rs." + balance);
+        } else {
+            System.out.println("Minimum balance of Rs.500 must be maintained.");
+        }
+    }
+}
+
+class CurrentAccount extends Account {
+    public CurrentAccount(int atmNumber, int pin, double balance) {
+        super(atmNumber, pin, balance);
+    }
+
+    @Override
+    public void withdraw(double amount) {
+        if (amount <= 0) {
+            System.out.println("Invalid amount entered.");
+        } else if (amount <= balance + 10000) {
+            balance -= amount;
+            System.out.println("Withdraw successful (with overdraft if needed).");
+            System.out.println("Current balance: Rs." + balance);
+        } else {
+            System.out.println("Overdraft limit exceeded.");
+        }
+    }
+}
+
 public class Main {
-    private static HashMap<Integer, Integer> accounts = new HashMap<Integer, Integer>();
-    private static HashMap<Integer, Double> balances = new HashMap<Integer, Double>();
-
     public static void main(String[] args) {
-        // Setup accounts
-        accounts.put(1111111, 1234);
-        accounts.put(2222222, 2003);
-        accounts.put(3333333, 1111);
-
-        balances.put(1111111, 500000.00);
-        balances.put(2222222, 280000.00);
-        balances.put(3333333, 10000.00);
-
         Scanner sc = new Scanner(System.in);
+
+       
+        HashMap<Integer, Account> accounts = new HashMap<>();
+        accounts.put(1111111, new SavingsAccount(1111111, 1234, 50000.00));
+        accounts.put(2222222, new CurrentAccount(2222222, 2003, 280000.00));
+        accounts.put(3333333, new SavingsAccount(3333333, 1111, 10000.00));
 
         boolean exit = false;
         while (!exit) {
@@ -25,15 +99,16 @@ public class Main {
             System.out.print("Enter your PIN: ");
             int pin = sc.nextInt();
 
-            if (authenticate(atmNumber, pin)) {
-                System.out.println("Welcome to the ATM!");
+            Account acc = accounts.get(atmNumber);
+
+            if (acc != null && acc.authenticate(atmNumber, pin)) {
+                System.out.println("\nWelcome to the ATM!");
 
                 boolean loggedIn = true;
                 while (loggedIn) {
-                    System.out.println("Please enter an option:");
-                    System.out.println("1. Check balance");
-                    System.out.println("2. Withdraw money");
-                    System.out.println("3. Deposit money");
+                    System.out.println("\n1. Check Balance");
+                    System.out.println("2. Withdraw Money");
+                    System.out.println("3. Deposit Money");
                     System.out.println("4. Exit");
                     System.out.print("Enter your choice: ");
 
@@ -41,72 +116,31 @@ public class Main {
 
                     switch (choice) {
                         case 1:
-                            checkBalance(balances.get(atmNumber));
+                            System.out.println("Your balance is: Rs." + acc.getBalance());
                             break;
                         case 2:
-                            withdraw(atmNumber, sc);
+                            System.out.print("Enter amount to withdraw: Rs.");
+                            double wAmt = sc.nextDouble();
+                            acc.withdraw(wAmt);
                             break;
                         case 3:
-                            deposit(atmNumber, sc);
+                            System.out.print("Enter amount to deposit: Rs.");
+                            double dAmt = sc.nextDouble();
+                            acc.deposit(dAmt);
                             break;
                         case 4:
                             loggedIn = false;
                             break;
                         default:
-                            System.out.println("Invalid choice. Please try again.");
-                            break;
+                            System.out.println("Invalid choice.");
                     }
-                    System.out.println();
                 }
-                // Optional: Remove exit=true to allow multiple users to login
-                exit = true; 
+                System.out.println("\nThank you for using the ATM!\n");
             } else {
-                System.out.println("Invalid. Please try again.");
+                System.out.println("Invalid ATM number or PIN. Please try again.\n");
             }
-            System.out.println();
-            sc.nextLine();
         }
 
         sc.close();
-        System.out.println("Thank you for using the ATM!");
-    }
-
-    private static boolean authenticate(int atmNumber, int pin) {
-        return accounts.containsKey(atmNumber) && accounts.get(atmNumber).equals(pin);
-    }
-
-    private static void checkBalance(double balance) {
-        System.out.println("Your balance is: Rs." + balance);
-    }
-
-    private static void withdraw(int atmNumber, Scanner sc) {
-        double balance = balances.get(atmNumber);
-        System.out.print("Enter amount to withdraw: Rs.");
-        double amount = sc.nextDouble();
-
-        if (amount <= 0) {
-            System.out.println("Invalid amount entered.");
-        } else if (amount <= balance) {
-            balance -= amount;
-            balances.put(atmNumber, balance);
-            System.out.println("Please take your money.");
-            System.out.println("Your remaining balance is: Rs." + balance);
-        } else {
-            System.out.println("Insufficient funds.");
-        }
-    }
-
-    private static void deposit(int atmNumber, Scanner sc) {
-        double balance = balances.get(atmNumber);
-        System.out.print("Enter amount to deposit: Rs.");
-        double amount = sc.nextDouble();
-
-        if (amount <= 0) {
-            System.out.println("Invalid amount entered.");
-        } else {
-            balance += amount;
-            balances.put(atmNumber, balance);
-            System.out.println("Your new balance is: Rs." + balance);
-        }
     }
 }
